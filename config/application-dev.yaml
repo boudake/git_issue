@@ -1,0 +1,13 @@
+environment: dev
+
+spark:
+  sql:
+    shuffle_partitions: 50
+
+paths:
+  raw: /opt/data
+  bronze: /opt/data/bronze
+  silver: /opt/data/silver
+  gold: /opt/data/gold
+
+

@@ -1,0 +1,19 @@
+[application]
+name = "ecommerce-analytics"
+environment = "local"
+log_level = "WARN"
+
+[spark]
+app_name = "ecommerce-analytics"
+master = "local[*]"
+shuffle_partitions = 8
+
+[paths]
+raw = "/opt/data"
+bronze= "/opt/data/bronze"
+silver= "/opt/data/silver"
+gold= "/opt/data/gold"
+
+[processing]
+load_mode = "incremental"
+write_mode = "append"

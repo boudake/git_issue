@@ -1,0 +1,21 @@
+application:
+  name: ecommerce-spark
+
+spark:
+  app_name: ecommerce-analytics
+  master: spark://spark-master:7077
+
+  sql:
+    shuffle_partitions: 200
+    adaptive_enabled: true
+
+paths:
+  raw: /data/raw
+  bronze: /data/bronze
+  silver: /data/silver
+  gold: /data/gold
+
+datasets:
+  customers: customers
+  products: products
+  events: events

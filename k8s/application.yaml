@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ecommerce-spark
+
+spec:
+
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ecommerce-spark
+
+  template:
+
+    metadata:
+      labels:
+        app: ecommerce-spark
+
+    spec:
+
+      containers:
+
+        - name: ecommerce-spark
+
+          image: registry.company.com/ecommerce-spark:1.0.0
+
+          env:
+            - name: APP_ENV
+              value: "prod"
+
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+
+            limits:
+              cpu: "4"
+              memory: "8Gi"

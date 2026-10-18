@@ -1,0 +1,38 @@
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecommerce-analytics
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: ecommerce-analytics
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: ecommerce-job
+          image: boudake/ecommerce-analytics:1.0.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          command:
+            - /bin/bash
+            - -lc
+          args:
+            - |
+              exec /opt/spark/bin/spark-submit \
+                --master spark://spark-master:7077 \
+                --deploy-mode client \
+                --conf spark.driver.host="${POD_IP}" \
+                --conf spark.driver.bindAddress=0.0.0.0 \
+                --conf spark.driver.port=7078 \
+                --conf spark.blockManager.port=7079 \
+                /opt/app/src/ecommerce_toml/main.py
+          ports:
+            - containerPort: 7078
+            - containerPort: 7079

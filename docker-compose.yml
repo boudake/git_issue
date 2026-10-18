@@ -1,0 +1,76 @@
+x-spark: &spark
+  image: boudake/spark-djim
+  volumes:
+    - .:/opt/spark-apps
+    - ./data:/opt/data
+    - ./conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+    - ./spark-events:/opt/spark-events
+
+services:
+  spark-master:
+    <<: *spark
+    container_name: spark-master
+    hostname: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    environment:
+      SPARK_MASTER_HOST: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+  spark-worker-1:
+    <<: *spark
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    depends_on:
+      - spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+    ports:
+      - "8081:8081"
+
+  spark-worker-2:
+    <<: *spark
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    depends_on:
+      - spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_WEBUI_PORT: 8082
+    ports:
+      - "8082:8082"
+
+  spark-history:
+    <<: *spark
+    container_name: spark-history
+    hostname: spark-history
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
+    ports:
+      - "18080:18080"
+
+  ecommerce-job:
+    <<: *spark
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: boudake/ecommerce-analytics:1.0.0
+    container_name: ecommerce-job
+    hostname: ecommerce-job
+    profiles: ["job"]
+    depends_on:
+      - spark-master
+    command: >
+      /opt/spark/bin/spark-submit
+      --master spark://spark-master:7077
+      --deploy-mode client
+      --conf spark.driver.host=ecommerce-job
+      --conf spark.driver.port=7078
+      --conf spark.blockManager.port=7079
+      /opt/spark-apps/src/ecommerce_toml/main.py
+    ports:
+      - "4040:4040"
+    restart: "no"
