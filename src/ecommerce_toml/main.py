@@ -13,7 +13,7 @@ def main():
     print(f"Spark version: {spark.version}")
 
     # Generate 1 million rows distributed across the cluster
-    df = spark.range(1_000_000)
+    df = spark.range(1_000)
 
     result = (
         df.withColumn("amount", col("id") % 100)
