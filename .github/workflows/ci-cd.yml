@@ -70,69 +70,49 @@ jobs:
   deploy-dev:
     name: Deploy to development
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, macOS, X64]
     environment: dev
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Configure Kubernetes access
+      - name: Verify Kind access
+        shell: bash
         run: |
-          mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBE_CONFIG_DEV }}" | base64 --decode > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
+          kubectl --context kind-spark get nodes
+          kubectl --context kind-spark get services -A
 
       - name: Submit Spark job to dev
         env:
           IMAGE: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+        shell: bash
         run: |
+          set -euo pipefail
+
           IMAGE="$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')"
           SHORT_SHA="${GITHUB_SHA:0:7}"
-          sed "s|__IMAGE__|${IMAGE}|g; s|__JOB_SUFFIX__|${SHORT_SHA}|g" \
-            k8s/ecommerce-job.yaml | kubectl apply -n ecommerce -f -
 
-      - name: Check job
+          sed \
+            -e "s|__IMAGE__|${IMAGE}|g" \
+            -e "s|__JOB_SUFFIX__|${SHORT_SHA}|g" \
+            k8s/ecommerce-job.yaml |
+            kubectl --context kind-spark apply -n ecommerce -f -
+
+      - name: Wait for Spark job
+        shell: bash
         run: |
-          kubectl wait -n ecommerce \
-            --for=condition=complete "job/ecommerce-analytics-${GITHUB_SHA:0:7}" \
-            --timeout=30m
+          JOB="ecommerce-analytics-${GITHUB_SHA:0:7}"
 
-  deploy-prod:
-    name: Deploy to production
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: prod
+          if ! kubectl --context kind-spark wait \
+            -n ecommerce \
+            --for=condition=complete \
+            "job/${JOB}" \
+            --timeout=30m; then
+            kubectl --context kind-spark describe job "$JOB" -n ecommerce || true
+            kubectl --context kind-spark logs "job/${JOB}" -n ecommerce || true
+            exit 1
+          fi
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Configure Kubernetes access
-        run: |
-          mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBE_CONFIG_DEV }}" | base64 --decode > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
-
-      - name: Submit Spark job to prod
-        env:
-          IMAGE: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-        run: |
-          IMAGE="$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')"
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          sed "s|__IMAGE__|${IMAGE}|g; s|__JOB_SUFFIX__|${SHORT_SHA}|g" \
-            k8s/ecommerce-job.yaml | kubectl apply -n ecommerce -f -
-
-      - name: Check job
-        run: |
-          kubectl wait -n ecommerce-prod \
-            --for=condition=complete "job/ecommerce-analytics-${GITHUB_SHA:0:7}" \
-            --timeout=30m
+          kubectl --context kind-spark logs "job/${JOB}" -n ecommerce
