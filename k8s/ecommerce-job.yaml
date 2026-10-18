@@ -1,8 +1,7 @@
-
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: ecommerce-analytics
+  name: ecommerce-analytics-__JOB_SUFFIX__
 spec:
   backoffLimit: 0
   template:
@@ -11,18 +10,17 @@ spec:
         app: ecommerce-analytics
     spec:
       restartPolicy: Never
+      enableServiceLinks: false
       containers:
         - name: ecommerce-job
-          image: boudake/ecommerce-analytics:1.0.0
+          image: __IMAGE__
           imagePullPolicy: IfNotPresent
           env:
             - name: POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          command:
-            - /bin/bash
-            - -lc
+          command: ["/bin/bash", "-lc"]
           args:
             - |
               exec /opt/spark/bin/spark-submit \
