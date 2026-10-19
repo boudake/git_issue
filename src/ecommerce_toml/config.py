@@ -1,27 +1,24 @@
-
 import os
 import tomllib
 from pathlib import Path
-from typing import Any
 
 
-def load_config(
-    config_path: str = "config/application.toml",
-) -> dict[str, Any]:
-    path = Path(config_path)
+def load_config() -> dict:
+    environment = os.getenv("APP_ENV", "dev")
 
-    with path.open("rb") as config_file:
-        config = tomllib.load(config_file)
+    config_files = {
+        "dev": "application_dev.toml",
+        "prod": "application.toml",
+    }
 
-    # Allow the deployment environment to override settings.
-    config["application"]["environment"] = os.getenv(
-        "APP_ENV",
-        config["application"]["environment"],
+    if environment not in config_files:
+        raise ValueError(f"Unsupported APP_ENV: {environment}")
+
+    config_path = (
+        Path(__file__).resolve().parents[2]
+        / "config"
+        / config_files[environment]
     )
 
-    config["application"]["log_level"] = os.getenv(
-        "LOG_LEVEL",
-        config["application"]["log_level"],
-    )
-
-    return config
+    with config_path.open("rb") as file:
+        return tomllib.load(file)

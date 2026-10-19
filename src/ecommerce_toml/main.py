@@ -1,29 +1,25 @@
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sum as spark_sum
+from ecommerce_toml.config import load_config
+
 
 def main():
+    config = load_config()
+
     spark = (
         SparkSession.builder
-        .appName("ecommerce-cluster-test")
+        .appName(config["spark"]["app_name"])
+        .master(config["spark"]["master"])
         .getOrCreate()
     )
 
-    print(f"Spark master: {spark.sparkContext.master}")
-    print(f"Spark version: {spark.version}")
+    try:
+        print(f"Environment: {config['app']['environment']}")
 
-    # Generate 1 million rows distributed across the cluster
-    df = spark.range(1_000)
+        # Your Spark transformations go here.
 
-    result = (
-        df.withColumn("amount", col("id") % 100)
-        .groupBy()
-        .agg(spark_sum("amount").alias("total_amount"))
-    )
+    finally:
+        spark.stop()
 
-    result.show()
-
-    spark.stop()
 
 if __name__ == "__main__":
     main()

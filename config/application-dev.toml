@@ -10,7 +10,6 @@ shuffle_partitions = 8
 
 [paths]
 raw = "/opt/data"
-raw= "/opt/data"
 bronze= "/opt/data/bronze"
 silver= "/opt/data/silver"
 gold= "/opt/data/gold"

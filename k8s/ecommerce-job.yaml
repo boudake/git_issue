@@ -16,6 +16,8 @@ spec:
           image: __IMAGE__
           imagePullPolicy: IfNotPresent
           env:
+            - name: APP_ENV
+              value: "dev"
             - name: POD_IP
               valueFrom:
                 fieldRef:

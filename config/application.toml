@@ -1,19 +1,17 @@
-[application]
+[app]
 name = "ecommerce-analytics"
-environment = "local"
-log_level = "WARN"
+environment = "prod"
+log_level = "INFO"
 
 [spark]
+master = "spark://spark-master:7077"
 app_name = "ecommerce-analytics"
-master = "local[*]"
-shuffle_partitions = 8
 
-[paths]
-raw = "/opt/data"
-bronze= "/opt/data/bronze"
-silver= "/opt/data/silver"
-gold= "/opt/data/gold"
+[spark.executor]
+instances = 3
+cores = 2
+memory = "2g"
 
-[processing]
-load_mode = "incremental"
-write_mode = "append"
+[data]
+input_path = "/opt/data/prod/input"
+output_path = "/opt/data/prod/output"
